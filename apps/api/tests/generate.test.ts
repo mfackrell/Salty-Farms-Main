@@ -25,10 +25,10 @@ vi.mock('../src/lib/prisma.js', () => ({
 }));
 
 describe('generate endpoint', () => {
-  it('returns sections + draft', async () => {
+  it('queues background generation and returns accepted status', async () => {
     const { createApp } = await import('../src/app.js');
     const res = await request(createApp()).post('/api/runs/run_1/generate').send({});
-    expect(res.status).toBe(200);
-    expect(res.body.data.draft.markdown).toContain('Draft');
+    expect(res.status).toBe(202);
+    expect(res.body.data.status).toBe('GENERATING');
   });
 });

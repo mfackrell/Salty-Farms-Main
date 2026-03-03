@@ -1,21 +1,25 @@
 import { OpenAI } from 'openai';
 import { env } from '../config/env.js';
 
+const markdownOnlyRule = 'Return Markdown only.';
+const noHallucinationRule = 'Only use details inferable from the provided content. If information is missing, state that details are forthcoming.';
+const editorRole = 'You are a professional church newsletter editor.';
+
 export const promptBuilders = {
   generateArticleFromPost: (post: { message: string; permalink?: string | null }) =>
-    `Write a short newsletter article in Markdown from this post.\nPost: ${post.message}\nLink: ${post.permalink ?? 'N/A'}\nRules: warm church/community tone, no fabricated claims, if uncertain say details forthcoming.`,
+    `${editorRole}\nTask: Write one short article from a single source post.\nFormat constraints: ${markdownOnlyRule}\nSafety constraints: ${noHallucinationRule}\nSource post:\n- Message: ${post.message}\n- Link: ${post.permalink ?? 'N/A'}`,
   generateMonthlyHighlights: (posts: string[]) =>
-    `Create Markdown monthly highlights from these posts:\n${posts.join('\n- ')}`,
+    `${editorRole}\nTask: Create monthly highlights from source posts.\nFormat constraints: ${markdownOnlyRule}\nSafety constraints: ${noHallucinationRule}\nSource posts:\n${posts.join('\n- ')}`,
   generateScripture: (month: string) =>
-    `Suggest one scripture section in Markdown for month ${month}, with brief reflection and prayer.` ,
+    `${editorRole}\nTask: Suggest one scripture section for month ${month} with a brief reflection and prayer.\nFormat constraints: ${markdownOnlyRule}`,
   generateCurrentNeeds: (posts: string[]) =>
-    `Extract current needs in Markdown list from posts. If sparse, say details forthcoming.\n${posts.join('\n- ')}`,
+    `${editorRole}\nTask: Extract current needs as a Markdown list.\nFormat constraints: ${markdownOnlyRule}\nSafety constraints: ${noHallucinationRule}\nSource posts:\n${posts.join('\n- ')}`,
   generateUpcomingEvents: (posts: string[]) =>
-    `Extract upcoming events in Markdown from posts. Use generic placeholders if unclear and mark details forthcoming.\n${posts.join('\n- ')}`,
+    `${editorRole}\nTask: Extract upcoming events in Markdown.\nFormat constraints: ${markdownOnlyRule}\nSafety constraints: ${noHallucinationRule}\nSource posts:\n${posts.join('\n- ')}`,
   generateVolunteerSpotlight: (posts: string[]) =>
-    `Create a volunteer spotlight in Markdown from posts. If no names, keep generic.\n${posts.join('\n- ')}`,
+    `${editorRole}\nTask: Create a volunteer spotlight in Markdown from source posts.\nFormat constraints: ${markdownOnlyRule}\nSafety constraints: ${noHallucinationRule}\nSource posts:\n${posts.join('\n- ')}`,
   aggregateNewsletter: (input: { month: string; sections: Record<string, string>; styleGuide: string }) =>
-    `Aggregate these Markdown sections into one cohesive newsletter for ${input.month}.\nStyle: ${input.styleGuide}.\nMust include: Title, Opening note, Highlights, Stories/Articles, Scripture, Current needs, Upcoming events, Volunteer spotlight, Closing.\nKeep 600-1200 words unless sparse.\nSections:\n${JSON.stringify(
+    `${editorRole}\nTask: Assemble a final newsletter for ${input.month}.\nFormat constraints: ${markdownOnlyRule}\nStyle: ${input.styleGuide}.\nProcess:\n1. Preserve facts from source sections without adding new claims.\n2. Smooth transitions and consistent tone.\n3. Output one complete newsletter containing: Title, Opening note, Highlights, Stories/Articles, Scripture, Current needs, Upcoming events, Volunteer spotlight, Closing.\nSource sections:\n${JSON.stringify(
       input.sections,
       null,
       2
@@ -35,7 +39,7 @@ export class OpenAiService {
           model: env.OPENAI_MODEL,
           temperature,
           messages: [
-            { role: 'system', content: 'Return Markdown only. Do not fabricate claims not inferable from input.' },
+            { role: 'system', content: `${editorRole} ${markdownOnlyRule} ${noHallucinationRule}` },
             { role: 'user', content: prompt }
           ]
         });

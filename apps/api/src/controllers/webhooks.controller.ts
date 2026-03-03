@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma.js';
 import { facebookWebhookSchema } from '../schemas/newsletter.schemas.js';
 import { GenerationService } from '../services/generation.service.js';
 import { ok } from '../types/api.js';
+import { logger } from '../lib/logger.js';
 
 const generationService = new GenerationService();
 
@@ -48,12 +49,21 @@ export async function ingestFacebookPosts(req: Request, res: Response) {
     data: posts.map((post) => ({ runId: run.id, postId: post.id }))
   });
 
-  const generated = await generationService.generateForRun(run.id);
+  void generationService.generateForRun(run.id).catch((error) => {
+    logger.error({ error, runId: run.id }, 'Background generation failed after webhook ingestion');
+    void prisma.newsletterRun
+      .update({
+        where: { id: run.id },
+        data: { status: 'FAILED', errorMessage: error instanceof Error ? error.message : 'Unknown generation error' }
+      })
+      .catch((updateError) => {
+        logger.error({ error: updateError, runId: run.id }, 'Failed to persist generation failure status');
+      });
+  });
 
-  return res.status(201).json(ok({
+  return res.status(202).json(ok({
     runId: run.id,
     importedCount: posts.length,
-    draftId: generated.draft.id,
-    sectionCount: generated.sections.length
+    status: 'GENERATING'
   }));
 }

@@ -6,6 +6,7 @@ import { draftPatchSchema, selectionSchema } from '../schemas/newsletter.schemas
 import { GenerationService } from '../services/generation.service.js';
 import { markdownToSanitizedHtml } from '../services/markdown.service.js';
 import { PublishService } from '../services/publish.service.js';
+import { logger } from '../lib/logger.js';
 
 const generationService = new GenerationService();
 const publishService = new PublishService();
@@ -52,8 +53,21 @@ export async function updateSelection(req: Request, res: Response) {
 }
 
 export async function generateRun(req: Request, res: Response) {
-  const result = await generationService.generateForRun(req.params.runId);
-  return res.json(ok(result));
+  const runId = req.params.runId;
+
+  void generationService.generateForRun(runId).catch((error) => {
+    logger.error({ error, runId }, 'Background generation failed from manual trigger');
+    void prisma.newsletterRun
+      .update({
+        where: { id: runId },
+        data: { status: 'FAILED', errorMessage: error instanceof Error ? error.message : 'Unknown generation error' }
+      })
+      .catch((updateError) => {
+        logger.error({ error: updateError, runId }, 'Failed to persist generation failure status');
+      });
+  });
+
+  return res.status(202).json(ok({ runId, status: 'GENERATING' }));
 }
 
 export async function patchDraft(req: Request, res: Response) {
