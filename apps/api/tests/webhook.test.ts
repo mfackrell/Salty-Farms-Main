@@ -6,11 +6,22 @@ process.env.INBOUND_WEBHOOK_SECRET = 'secret';
 
 const upsert = vi.fn();
 const create = vi.fn();
+const createMany = vi.fn();
+const generateForRun = vi.fn();
+
+vi.mock('../src/services/generation.service.js', () => ({
+  GenerationService: class {
+    async generateForRun(runId: string) {
+      return generateForRun(runId);
+    }
+  }
+}));
 
 vi.mock('../src/lib/prisma.js', () => ({
   prisma: {
     post: { upsert },
-    newsletterRun: { create }
+    newsletterRun: { create },
+    runPostSelection: { createMany }
   }
 }));
 
@@ -18,6 +29,11 @@ describe('webhook endpoint', () => {
   beforeEach(() => {
     upsert.mockResolvedValue({ id: 'p1' });
     create.mockResolvedValue({ id: 'run_1' });
+    createMany.mockResolvedValue({ count: 1 });
+    generateForRun.mockResolvedValue({
+      draft: { id: 'draft_1', markdown: '# Draft' },
+      sections: [{ id: 's1' }, { id: 's2' }]
+    });
   });
 
   it('rejects invalid secret', async () => {
@@ -26,7 +42,7 @@ describe('webhook endpoint', () => {
     expect(res.status).toBe(401);
   });
 
-  it('imports posts and creates run', async () => {
+  it('imports posts, selects them, and auto-generates draft', async () => {
     const { createApp } = await import('../src/app.js');
     const res = await request(createApp())
       .post('/api/webhooks/zapier/facebook-posts')
@@ -45,7 +61,9 @@ describe('webhook endpoint', () => {
 
     expect(res.status).toBe(201);
     expect(res.body.data.importedCount).toBe(1);
-    expect(upsert).toHaveBeenCalled();
-    expect(create).toHaveBeenCalled();
+    expect(res.body.data.draftId).toBe('draft_1');
+    expect(res.body.data.sectionCount).toBe(2);
+    expect(createMany).toHaveBeenCalledWith({ data: [{ runId: 'run_1', postId: 'p1' }] });
+    expect(generateForRun).toHaveBeenCalledWith('run_1');
   });
 });
