@@ -84,7 +84,7 @@ export async function generateNewsletter(req: Request, res: Response) {
     console.log('✅ [RUN] Updating NewsletterRun status to DRAFT_READY');
     await prisma.newsletterRun.update({
       where: { id: run.id },
-      data: { status: RunStatus.DRAFT_READY }
+      data: { status: RunStatus.COMPLETED }
     });
 
     return res.status(201).json(ok({ runId: run.id, draftId: draft.id }));
