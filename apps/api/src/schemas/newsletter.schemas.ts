@@ -1,17 +1,17 @@
 import { z } from 'zod';
 
+export const facebookPostSchema = z.object({
+  externalPostId: z.string(),
+  message: z.string(),
+  postedAt: z.string(),
+  permalink: z.string().optional().nullable(),
+  mediaUrl: z.string().optional().nullable()
+});
+
 export const facebookWebhookSchema = z.object({
   source: z.literal('facebook'),
   month: z.string().regex(/^\d{4}-\d{2}$/),
-  posts: z.array(
-    z.object({
-      externalPostId: z.string().min(1),
-      message: z.string().min(1),
-      postedAt: z.string().datetime(),
-      permalink: z.string().url().optional(),
-      mediaUrl: z.string().url().optional()
-    })
-  )
+  posts: z.array(facebookPostSchema)
 });
 
 export const selectionSchema = z.object({
