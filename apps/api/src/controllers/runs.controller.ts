@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { ok } from '../types/api.js';
@@ -34,7 +35,7 @@ export async function updateSelection(req: Request, res: Response) {
   const body = selectionSchema.parse(req.body);
   const runId = req.params.runId;
 
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     await tx.runPostSelection.deleteMany({ where: { runId } });
     if (body.postIds.length) {
       await tx.runPostSelection.createMany({

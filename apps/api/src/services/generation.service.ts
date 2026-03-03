@@ -13,24 +13,25 @@ export class GenerationService {
     });
 
     if (!run) throw new AppError('NOT_FOUND', 'Run not found', 404);
-    const posts = run.selections.map((s) => s.post);
+    const posts = run.selections.map((s: any) => s.post);
     if (posts.length === 0) throw new AppError('INVALID_SELECTION', 'Select at least one post');
 
     await prisma.newsletterRun.update({ where: { id: runId }, data: { status: 'GENERATING', errorMessage: null } });
 
     const articleOutputs = await Promise.all(
-      posts.map((post) =>
+      posts.map((post: any) =>
         this.openai.generateMarkdown(promptBuilders.generateArticleFromPost(post), 0.4)
       )
     );
-    const textPosts = posts.map((p) => p.message);
+    const textPosts = posts.map((p: any) => p.message);
+    const normalizedTextPosts = textPosts.map((p: string) => p);
 
     const sections = [
-      { type: SectionType.HIGHLIGHTS, content: await this.openai.generateMarkdown(promptBuilders.generateMonthlyHighlights(textPosts), 0.4), order: 1 },
+      { type: SectionType.HIGHLIGHTS, content: await this.openai.generateMarkdown(promptBuilders.generateMonthlyHighlights(normalizedTextPosts), 0.4), order: 1 },
       { type: SectionType.SCRIPTURE, content: await this.openai.generateMarkdown(promptBuilders.generateScripture(run.month), 0.4), order: 2 },
-      { type: SectionType.CURRENT_NEEDS, content: await this.openai.generateMarkdown(promptBuilders.generateCurrentNeeds(textPosts), 0.4), order: 3 },
-      { type: SectionType.UPCOMING_EVENTS, content: await this.openai.generateMarkdown(promptBuilders.generateUpcomingEvents(textPosts), 0.4), order: 4 },
-      { type: SectionType.VOLUNTEER_SPOTLIGHT, content: await this.openai.generateMarkdown(promptBuilders.generateVolunteerSpotlight(textPosts), 0.4), order: 5 }
+      { type: SectionType.CURRENT_NEEDS, content: await this.openai.generateMarkdown(promptBuilders.generateCurrentNeeds(normalizedTextPosts), 0.4), order: 3 },
+      { type: SectionType.UPCOMING_EVENTS, content: await this.openai.generateMarkdown(promptBuilders.generateUpcomingEvents(normalizedTextPosts), 0.4), order: 4 },
+      { type: SectionType.VOLUNTEER_SPOTLIGHT, content: await this.openai.generateMarkdown(promptBuilders.generateVolunteerSpotlight(normalizedTextPosts), 0.4), order: 5 }
     ];
 
     await prisma.newsletterSection.deleteMany({ where: { runId } });

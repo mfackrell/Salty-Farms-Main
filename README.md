@@ -91,3 +91,19 @@ curl -X POST http://localhost:4000/api/webhooks/zapier/facebook-posts \
 - [x] Generate works
 - [x] Edit works (autosave PATCH)
 - [x] Publish sends HTML outbound
+
+## Cloud deployment configuration
+
+Set these required environment variables in your cloud dashboard (for example, Vercel):
+
+- `DATABASE_URL`: Your cloud PostgreSQL connection string
+- `OPENAI_API_KEY`: Your OpenAI API key
+- `INBOUND_WEBHOOK_SECRET`: `h6K9vP2nL4mX8bR5wT7zY1qS3uJ0eA4g`
+- `OUTBOUND_ZAPIER_WEBHOOK_URL`: Your Zapier catch-hook URL
+- `CORS_ORIGIN`: The URL of your deployed frontend
+
+Use these deployment commands/settings:
+
+- Install Command: `npm install`
+- Build Command: `npm run build`
+- Database migration step: `npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma`
