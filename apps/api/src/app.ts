@@ -9,6 +9,7 @@ import routes from './routes/index.js';
 
 export function createApp() {
   const app = express();
+  app.set('trust proxy', 1);
   app.use((helmet as any)());
   app.use((cors as any)({ origin: env.CORS_ORIGIN.split(',') }));
   app.use(express.json({ limit: '1mb' }));
