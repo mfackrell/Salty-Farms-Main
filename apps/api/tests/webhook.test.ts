@@ -42,7 +42,7 @@ describe('webhook endpoint', () => {
     expect(res.status).toBe(401);
   });
 
-  it('imports posts, selects them, and auto-generates draft', async () => {
+  it('imports posts, persists selections, and queues background generation', async () => {
     const { createApp } = await import('../src/app.js');
     const res = await request(createApp())
       .post('/api/webhooks/zapier/facebook-posts')
@@ -59,10 +59,9 @@ describe('webhook endpoint', () => {
         ]
       });
 
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(202);
     expect(res.body.data.importedCount).toBe(1);
-    expect(res.body.data.draftId).toBe('draft_1');
-    expect(res.body.data.sectionCount).toBe(2);
+    expect(res.body.data.status).toBe('GENERATING');
     expect(createMany).toHaveBeenCalledWith({ data: [{ runId: 'run_1', postId: 'p1' }] });
     expect(generateForRun).toHaveBeenCalledWith('run_1');
   });
