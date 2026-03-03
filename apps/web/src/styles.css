@@ -1,0 +1,6 @@
+body { font-family: Arial, sans-serif; margin: 0; }
+.container { max-width: 960px; margin: 0 auto; padding: 1rem; }
+.layout { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; padding: 1rem; }
+textarea { width: 100%; }
+.post-item { display: block; margin-bottom: .5rem; }
+button { margin-right: .5rem; margin-top: .5rem; }
