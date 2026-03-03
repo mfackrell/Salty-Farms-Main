@@ -18,7 +18,7 @@ function getMonthRange(month: string) {
 export async function generateNewsletter(req: Request, res: Response) {
   try {
     const month = String(req.body?.month ?? '').trim();
-    console.log(`[START] generateNewsletter called with month=${month}`);
+    console.log('🚀 [GENERATE] Request received for month:', month);
 
     if (!/^\d{4}-\d{2}$/.test(month)) {
       return res.status(400).json({ error: 'month must match YYYY-MM format' });
@@ -30,6 +30,8 @@ export async function generateNewsletter(req: Request, res: Response) {
     console.log(`[DB] Created NewsletterRun ${run.id}`);
 
     const { start, end } = getMonthRange(month);
+    console.log('🔍 [DB] Searching for posts containing month:', month);
+
     const posts = await prisma.post.findMany({
       where: {
         postedAt: {
@@ -40,19 +42,18 @@ export async function generateNewsletter(req: Request, res: Response) {
       orderBy: { postedAt: 'asc' }
     });
 
-    console.log(`[DB] Found ${posts.length} posts for month ${month}`);
+    console.log('📊 [DB] Found ' + posts.length + ' posts.');
 
     if (posts.length === 0) {
       console.error(`[ERROR] No posts found for ${month}`);
       return res.status(400).json({ error: `No posts found for ${month}` });
     }
 
-    console.log(`[AI] Sending ${posts.length} posts to LLM...`);
-
     const openAiService = new OpenAiService();
     let draftContent = '';
 
     try {
+      console.log('🤖 [AI] Sending posts to LLM...');
       draftContent = await openAiService.generateMarkdown(
         promptBuilders.aggregateNewsletter({
           month,
@@ -64,11 +65,12 @@ export async function generateNewsletter(req: Request, res: Response) {
         0.6
       );
     } catch (error) {
-      console.error(error);
+      console.error('❌ [AI ERROR] LLM call failed:', error);
       throw error;
     }
 
     console.log(`[AI] Draft content length=${draftContent.length}`);
+    console.log('📝 [DRAFT] Saving draft. Content length:', draftContent?.length);
 
     const draft = await prisma.newsletterDraft.create({
       data: {
@@ -79,6 +81,7 @@ export async function generateNewsletter(req: Request, res: Response) {
 
     console.log(`[DB] Created NewsletterDraft ${draft.id}`);
 
+    console.log('✅ [RUN] Updating NewsletterRun status to DRAFT_READY');
     await prisma.newsletterRun.update({
       where: { id: run.id },
       data: { status: RunStatus.DRAFT_READY }
@@ -86,7 +89,7 @@ export async function generateNewsletter(req: Request, res: Response) {
 
     return res.status(201).json(ok({ runId: run.id, draftId: draft.id }));
   } catch (error) {
-    console.error(error);
+    console.error('💥 [FATAL] Newsletter generation crashed:', error);
     return res.status(500).json({ error: 'Failed to generate newsletter' });
   }
 }
