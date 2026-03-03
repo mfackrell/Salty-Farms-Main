@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RunStatus {
+  RECEIVED
+  SELECTING
+  GENERATING
+  DRAFT_READY
+  PUBLISHED
+  FAILED
+}
+
+enum SectionType {
+  ARTICLE
+  HIGHLIGHTS
+  SCRIPTURE
+  CURRENT_NEEDS
+  UPCOMING_EVENTS
+  VOLUNTEER_SPOTLIGHT
+  AGGREGATED_DRAFT
+}
+
+model Post {
+  id             String   @id @default(cuid())
+  externalPostId String   @unique
+  message        String   @db.Text
+  postedAt       DateTime
+  permalink      String?
+  mediaUrl       String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  selections RunPostSelection[]
+}
+
+model NewsletterRun {
+  id           String    @id @default(cuid())
+  month        String
+  status       RunStatus @default(RECEIVED)
+  errorMessage String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  selections RunPostSelection[]
+  sections   NewsletterSection[]
+  draft      NewsletterDraft?
+  publishLogs PublishLog[]
+}
+
+model RunPostSelection {
+  id     String @id @default(cuid())
+  runId  String
+  postId String
+
+  run  NewsletterRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  post Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, postId])
+}
+
+model NewsletterSection {
+  id              String      @id @default(cuid())
+  runId           String
+  type            SectionType
+  title           String?
+  contentMarkdown String      @db.Text
+  sortOrder       Int         @default(0)
+
+  run NewsletterRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, type])
+}
+
+model NewsletterDraft {
+  id        String   @id @default(cuid())
+  runId     String   @unique
+  markdown  String   @db.Text
+  html      String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  run NewsletterRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+}
+
+model PublishLog {
+  id             String   @id @default(cuid())
+  runId          String
+  target         String
+  requestPayload Json
+  responseStatus Int?
+  responseBody   String?  @db.Text
+  success        Boolean
+  createdAt      DateTime @default(now())
+
+  run NewsletterRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+}
