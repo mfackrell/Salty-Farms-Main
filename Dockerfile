@@ -17,4 +17,4 @@ COPY . .
 # Generate Prisma client and build the API
 RUN npm run build -w apps/api
 
-CMD ["npm","run","start","-w","apps/api"]]
+CMD ["npm","run","start","-w","apps/api"]
