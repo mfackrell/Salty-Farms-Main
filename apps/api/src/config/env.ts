@@ -5,7 +5,7 @@ dotenv.config();
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  PORT: z.coerce.number().default(4000),
+  PORT: z.coerce.number().default(8080),
   DATABASE_URL: z.string().min(1),
   OPENAI_API_KEY: z.string().default(''),
   OPENAI_MODEL: z.string().default('gpt-4o'),
