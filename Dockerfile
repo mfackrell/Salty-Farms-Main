@@ -8,6 +8,8 @@ WORKDIR /app
 COPY package*.json ./
 COPY apps/api/package*.json ./apps/api/
 
+RUN apk add --no-cache libc6-compat openssl
+
 RUN npm install
 
 COPY . .
